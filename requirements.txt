@@ -1,0 +1,3 @@
+Pillow
+vk_api
+requests
