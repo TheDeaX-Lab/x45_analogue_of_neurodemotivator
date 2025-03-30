@@ -120,7 +120,7 @@ for photo in req['items']:
     if "attachment" in photo:
         attachment = photo['attachment']['photo']
         attachments.append([attachment['owner_id'], attachment['id'],
-                           attachment['access_key'], get_original_photo_url(attachment)])
+                           attachment['access_key'] if "access_key" in attachment else None, get_original_photo_url(attachment)])
 while 'next_from' in req:
     req = api.messages.getHistoryAttachments(
         peer_id=CHAT_START_ID + target_chat_id, media_type="photo", count=200, start_from=req['next_from'])
@@ -128,7 +128,7 @@ while 'next_from' in req:
         if "attachment" in photo:
             attachment = photo['attachment']['photo']
             attachments.append(
-                [attachment['owner_id'], attachment['id'], attachment['access_key'], get_original_photo_url(attachment)])
+                [attachment['owner_id'], attachment['id'], attachment['access_key'] if "access_key" in attachment else None, get_original_photo_url(attachment)])
 
 while True:
     try:
