@@ -1,6 +1,4 @@
 {
-    "login": "...",
-    "password": "...",
     "enable_forward": false,
     "count_forward_msgs": 5,
     "captcha_method_input": "rucaptcha_input",
@@ -8,5 +6,6 @@
     "fontfile": "JetBrainsMono-Medium-Italic.ttf",
     "fontsize": 40,
     "collision_enable": true,
-    "target_chat_id": 256
+    "target_chat_id": 256,
+    "token": ".."
 }

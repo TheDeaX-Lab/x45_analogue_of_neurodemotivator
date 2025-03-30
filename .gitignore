@@ -3,3 +3,4 @@ __pycache__
 auto_config.py
 config.json
 login.json
+.venv

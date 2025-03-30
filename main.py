@@ -78,11 +78,12 @@ change_font(config['fontfile'])
 
 
 vk_auth_params = dict(
-    login=config['login'], password=config['password'], app_id=2685278, auth_handler=auth_handler,
+    **(dict(login=config['login'], password=config['password']) if "token" not in config else dict(token=config["token"])), app_id=2685278, auth_handler=auth_handler,
     captcha_handler=captcha_solve if config['captcha_method_input'] != "standart_input" else standart_captcha_solve
 )
 vk = VkApi(**vk_auth_params)
-vk.auth()
+if "token" not in config:
+    vk.auth()
 api = vk.get_api()
 upload = VkUpload(vk)
 attachments = []
@@ -128,62 +129,70 @@ while 'next_from' in req:
             attachment = photo['attachment']['photo']
             attachments.append(
                 [attachment['owner_id'], attachment['id'], attachment['access_key'], get_original_photo_url(attachment)])
-# Включение в работу бота
-lp = VkLongPoll(vk)
-print("Ready")
-for event in lp.listen():
-    # Проверка на то что это сообщение из чата из которой требуется работа бота
-    message_is_new = event.type == VkEventType.MESSAGE_NEW
-    valid_chat_id = event.chat_id == target_chat_id if event.from_chat else False
-    if message_is_new and event.from_chat and valid_chat_id:
-        if hasattr(event, 'text'):
-            # Проверка совпадения команды
-            current_text = event.text.lower().strip()
-            if COLLISION_ENABLED:
-                current_text = current_text.replace('p', 'р').replace(
-                    'a', 'а').replace('o', 'о')
-            text_valid = "рандом" in current_text
-            if text_valid:
-                # Выбор рандомной картинки
-                rnd_attach = choice(attachments)
-                req = api.photos.getById
-                tmp_attach_file = requests.get(rnd_attach[3], stream=True).raw
-                img = Image.open(tmp_attach_file)
-                texts = []
-                from_ids = []
-                text_for_print = ""
-                # Выбор некоторого количества рандомных сообщений
-                for i in range(COUNT_FORWARD_MESSAGES):
-                    msg = choice(messages)
-                    texts.append(msg['text'])
-                    from_ids.append(msg['from_id'])
-                users = api.users.get(user_ids=list(set(from_ids)))
-                for i in range(len(from_ids)):
-                    for user in users:
-                        if user['id'] == from_ids[i]:
-                            texts[i] =  f"{user['first_name']} {user['last_name']}: {texts[i]}"
-                            break
-                for i in texts:
-                    text_for_print += i + '\n'
-                # Создаем мем
-                img_main = get_meme(text_for_print, img)
-                file = io.BytesIO()
-                img_main.save(file, format="PNG")
-                file.seek(0)
-                obj = upload.photo_messages(
-                    file, CHAT_START_ID + target_chat_id)
-                vk_photo_url = 'photo{}_{}_{}'.format(
-                    obj[0]['owner_id'], obj[0]['id'], obj[0]['access_key']
-                )
-                # Отправляем в чат
-                api.messages.send(chat_id=event.chat_id, message="&#8291;", attachment=vk_photo_url,
-                                  forward_messages=list(map(lambda x: x['id'], texts)) if ENABLED_FORWARD else [], random_id=get_random_id())
-                continue
-            if COLLISION_ENABLED:
-                current_text = current_text.replace(
-                    'a', 'а').replace('p', 'р')
-            text_valid = "бэбра" in current_text
-            if text_valid:
-                api.messages.send(chat_id=event.chat_id, message="&#8291;", attachment=choice(gifs),
-                                  random_id=get_random_id())
-                continue
+
+while True:
+    try:
+        # Включение в работу бота
+        lp = VkLongPoll(vk)
+        print("Ready")
+        for event in lp.listen():
+            # Проверка на то что это сообщение из чата из которой требуется работа бота
+            message_is_new = event.type == VkEventType.MESSAGE_NEW
+            valid_chat_id = event.chat_id == target_chat_id if event.from_chat else False
+            if message_is_new and event.from_chat and valid_chat_id:
+                if hasattr(event, 'text'):
+                    # Проверка совпадения команды
+                    current_text = event.text.lower().strip()
+                    if COLLISION_ENABLED:
+                        current_text = current_text.replace('p', 'р').replace(
+                            'a', 'а').replace('o', 'о')
+                    text_valid = "рандом" in current_text
+                    if text_valid:
+                        # Выбор рандомной картинки
+                        rnd_attach = choice(attachments)
+                        req = api.photos.getById
+                        tmp_attach_file = requests.get(rnd_attach[3], stream=True).raw
+                        img = Image.open(tmp_attach_file)
+                        texts = []
+                        from_ids = []
+                        msg_ids = []
+                        text_for_print = ""
+                        # Выбор некоторого количества рандомных сообщений
+                        for i in range(COUNT_FORWARD_MESSAGES):
+                            msg = choice(messages)
+                            msg_ids.append(msg["id"])
+                            texts.append(msg['text'])
+                            from_ids.append(msg['from_id'])
+                        users = api.users.get(user_ids=list(set(from_ids)))
+                        for i in range(len(from_ids)):
+                            for user in users:
+                                if user['id'] == from_ids[i]:
+                                    texts[i] =  f"{user['first_name']} {user['last_name']}: {texts[i]}"
+                                    break
+                        for i in texts:
+                            text_for_print += i + '\n'
+                        # Создаем мем
+                        img_main = get_meme(text_for_print, img)
+                        file = io.BytesIO()
+                        img_main.save(file, format="PNG")
+                        file.seek(0)
+                        obj = upload.photo_messages(
+                            file, CHAT_START_ID + target_chat_id)
+                        vk_photo_url = 'photo{}_{}_{}'.format(
+                            obj[0]['owner_id'], obj[0]['id'], obj[0]['access_key']
+                        )
+                        # Отправляем в чат
+                        api.messages.send(chat_id=event.chat_id, message="&#8291;", attachment=vk_photo_url,
+                                        forward_messages=msg_ids if ENABLED_FORWARD else [], random_id=get_random_id())
+                        continue
+                    if COLLISION_ENABLED:
+                        current_text = current_text.replace(
+                            'a', 'а').replace('p', 'р')
+                    text_valid = "бэбра" in current_text
+                    if text_valid:
+                        api.messages.send(chat_id=event.chat_id, message="&#8291;", attachment=choice(gifs),
+                                        random_id=get_random_id())
+                        continue
+    except:
+        import time
+        time.sleep(1)

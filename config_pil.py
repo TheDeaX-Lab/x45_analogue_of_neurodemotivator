@@ -3,6 +3,19 @@ from typing import List
 from PIL import Image, ImageFont, ImageDraw
 import textwrap
 
+# На замену font.getsize
+def get_size_font(font, word):
+    # Получение bounding box для текста
+    bbox = font.getbbox(word)
+
+    # Распаковка bbox: (left, top, right, bottom)
+    left, top, right, bottom = bbox
+
+    # Вычисление ширины и высоты текста
+    font_width = right - left
+    font_height = bottom - top
+    return font_width, font_height
+
 White = (255, 255, 255)
 Black = (0, 0, 0)
 Red = (255, 0, 0)
@@ -13,10 +26,10 @@ fontsize = 40
 font = ImageFont.truetype(font_path, fontsize)
 label_image = Image.open(".\logo.jpg")
 #label_image = label_image.resize((98, 40))
-font_width, font_height = font.getsize("a")
+
+font_width, font_height =  get_size_font(font, "a")
 min_width, min_height = 1200, 944
 max_width, max_height = 2480, 1968
-
 
 def change_font(filename):
     global font
@@ -33,7 +46,7 @@ def draw_multiple_line_text(image, lines, font, text_color, text_start_height):
     image_width, _ = image.size
     y_text = text_start_height
     for line in lines:
-        line_width, line_height = font.getsize(line)
+        line_width, line_height = get_size_font(font, line)
         draw.text(((image_width - line_width) / 2, y_text),
                   line, font=font, fill=text_color)
         y_text += line_height
@@ -89,7 +102,7 @@ def get_meme(text_lines_for_print, img):
     # Лишний отступ удаляем
     lines.pop()
     # Расчет высоты текста
-    text_height: int = sum([font.getsize(lines[i])[1]
+    text_height: int = sum([get_size_font(font, lines[i])[1]
                            for i in range(len(lines))])
     # Создание временной картины для хранения текущей картины с рамкой и логотипом
     image_with_border = get_image_with_border(
